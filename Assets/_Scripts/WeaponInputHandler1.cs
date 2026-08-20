@@ -11,35 +11,30 @@ public class WeaponInputHandler : MonoBehaviour
     private void Update()
     {
         if (weaponController == null) return;
-        if (weaponController.GetFireMode() == FireMode.SemiAuto || weaponController.GetFireMode() == FireMode.Burst)
+
+        FireMode mode = weaponController.GetFireMode();
+
+        if (mode == FireMode.SemiAuto || mode == FireMode.Burst)
         {
-            if (Input.GetMouseButton(0))
+            if (Input.GetButtonDown("Fire1"))
             {
                 weaponController.TryShoot();
             }
         }
+        else if (mode == FireMode.FullyAuto)
+        {
+             if (Input.GetButton("Fire1"))
+             {
+                weaponController.TryShoot();
+             }
+        }
         if (Input.GetKeyDown(KeyCode.R))
         {
             weaponController.TryReload();
         }
-
-
         if (Input.GetKeyDown(KeyCode.E))
         {
             weaponController.ToggleWeapon();
         }
-
-        if (Input.GetButton("Fire1"))
-        {
-            weaponController.TryShoot();
-        }
-
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            weaponController.TryReload();
-        }
     }
-
-
-
 }
