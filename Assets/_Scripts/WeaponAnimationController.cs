@@ -17,6 +17,11 @@ public class WeaponAnimationController : MonoBehaviour
         {
             weaponController = GetComponent<WeaponController>();
         }
+
+        if (animator != null)
+        {
+            animator.ResetTrigger(shootAnimationTriggerName);
+        }
     }
 
     private void OnEnable()

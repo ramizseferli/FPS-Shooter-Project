@@ -64,13 +64,23 @@ public class WeaponController : MonoBehaviour
             cameraTransform = Camera.main.transform;
         }
 
+        if (weaponMesh != null)
+        {
+            weaponMesh.SetActive(isArmed);
+        }
+
+        if (animator != null)
+        {
+            animator.SetBool("IsArmed", isArmed);
+        }
+
         OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
     }
 
     // 2. PUBLIC METHODS (Kənardan çağırılanlar)
     public void TryShoot()
     {
-        if (Time.time >= nextTimeToFire && currentAmmo > 0 && !isReloading)
+        if (isArmed && Time.time >= nextTimeToFire && currentAmmo > 0 && !isReloading)
         {
             if (fireMode == FireMode.Burst)
             {
@@ -86,11 +96,27 @@ public class WeaponController : MonoBehaviour
 
     public void TryReload()
     {
-        if (!isReloading && currentAmmo < maxAmmo)
+        if (isArmed && !isReloading && currentAmmo < maxAmmo)
         {
             StartCoroutine(ReloadCoroutine());
         }
     }
+    
+    public void SetArmedState(bool armed)
+    {
+        isArmed = armed;
+
+        if (animator != null)
+        {
+            animator.SetBool("IsArmed", isArmed);
+        }
+
+        if (weaponMesh != null)
+        {
+            weaponMesh.SetActive(isArmed);
+        }
+    }
+
     private void ExecuteSingleShot()
     {
         currentAmmo -= 1;
