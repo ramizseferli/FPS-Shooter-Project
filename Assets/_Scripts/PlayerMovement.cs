@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
+using System.Collections;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -21,6 +21,18 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // 1. Asılı vəziyyətdəyiksə (controller söndürülübsə), parametrləri sıfırla və çıx
+        if (controller != null && !controller.enabled)
+        {
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", 0f);
+                animator.SetFloat("MotionSpeed", 0f);
+                animator.SetBool("Grounded", false);
+            }
+            return;
+        }
+
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
 
@@ -36,7 +48,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (animator != null)
         {
-            // 1. Sürət parametrini göndəririk (Blend Tree özü animasiyanı rəvan keçirəcək)
+            // 1. Sürət parametrini göndəririk
             animator.SetFloat("Speed", currentSpeed);
 
             // 2. MotionSpeed parametri: Hərəkət olduqda 1f
