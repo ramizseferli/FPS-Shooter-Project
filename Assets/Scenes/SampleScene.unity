@@ -250,7 +250,7 @@ Transform:
   m_GameObject: {fileID: 158987204}
   serializedVersion: 2
   m_LocalRotation: {x: 0.048759338, y: -0.64263076, z: 0.11574432, w: 0.75581187}
-  m_LocalPosition: {x: 22.82, y: 4.48, z: 30.5}
+  m_LocalPosition: {x: 21.39, y: 2.96, z: 26.69}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1461,13 +1461,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4c9de832a6938d44866fc5c7291a197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LedgeDetector
-  wallCheckDistance: 1.5
-  ledgeCheckHeight: 1.5
-  maxLedgeDepth: 2
+  wallCheckDistance: 2
+  ledgeCheckHeight: 1.9
+  maxLedgeDepth: 2.5
   climbableLayer:
     serializedVersion: 2
     m_Bits: 256
-  hangOffsetDown: 1.2
+  maxJumpReachHeight: 2.5
+  maxArmLength: 2
+  shoulderPoint: {fileID: 1996659578}
+  hangOffsetDown: 0
   hangOffsetForward: 0.25
   climbDuration: 1.5
   _animator: {fileID: 1805316026}

@@ -9,9 +9,17 @@ public class LedgeDetector : MonoBehaviour
     public float maxLedgeDepth = 1.5f;
     public LayerMask climbableLayer;
 
+    [Header("Reach & Height Safety Limits")]
+    [Tooltip("Personajın tullanıb tuta biləcəyi maksimum hündürlük (metrlə)")]
+    public float maxJumpReachHeight = 2.5f;
+    [Tooltip("Çiyin/Əl oxundan tilə qədər maksimum çatışma məsafəsi")]
+    public float maxArmLength = 0.9f;
+    [Tooltip("Çiyin və ya əlin çıxış nöqtəsi (Boş qalsa Player transform istifadə edəcək)")]
+    public Transform shoulderPoint;
+
     [Header("Offset Settings")]
     [Tooltip("Xarakter asılanda əllərinin divar kənarına dəyməsi üçün aşağı düşmə məsafəsi")]
-    public float hangOffsetDown = 1.4f;
+    public float hangOffsetDown = 0f;
     [Tooltip("Xarakterin divardan irəli/geri məsafəsi")]
     public float hangOffsetForward = 0.25f;
     public float climbDuration = 1.0f;
@@ -27,7 +35,7 @@ public class LedgeDetector : MonoBehaviour
 
     private void Start()
     {
-        if (_animator !=null)
+        if (_animator != null)
         {
             _animator.SetBool("isHanging", false);
             _animator.SetBool("Grounded", true);
@@ -40,6 +48,9 @@ public class LedgeDetector : MonoBehaviour
         _characterController = GetComponent<CharacterController>();
         if (_animator == null)
             _animator = GetComponentInChildren<Animator>();
+
+        if (shoulderPoint == null)
+            shoulderPoint = transform;
     }
 
     private void Update()
@@ -61,7 +72,7 @@ public class LedgeDetector : MonoBehaviour
 
     private void TryHang()
     {
-        Vector3 origin = transform.position + Vector3.up * 0.1f;
+        Vector3 origin = transform.position + Vector3.up * 1.0f;
         RaycastHit wallHit;
 
         if (Physics.Raycast(origin, transform.forward, out wallHit, wallCheckDistance, climbableLayer))
@@ -78,10 +89,23 @@ public class LedgeDetector : MonoBehaviour
                 {
                     _topPosition = topHit.point;
 
-                    // Divarın tam kənarına uyğun asılma mövqeyi
-                    _hangPosition = _topPosition
-                                    - (transform.forward * hangOffsetForward)
-                                    - (Vector3.up * hangOffsetDown);
+                    // --- SÜZGƏC 1: MAX HÜNDÜRLÜK YOXLAMASI ---
+                    float heightDifference = _topPosition.y - transform.position.y;
+                    if (heightDifference > maxJumpReachHeight) return;
+
+                    // --- SÜZGƏC 2: ƏLİN / QOLUN ÇATMA MƏSAFƏSİ YOXLAMASI ---
+                    float distanceToLedge = Vector3.Distance(shoulderPoint.position, _topPosition);
+                    if (distanceToLedge > maxArmLength) return;
+
+                    // --- DƏQİQ ASILMA HESABLAMASI ---
+                    float handYOffsetFromPivot = 1.95f;
+                    float targetY = _topPosition.y - handYOffsetFromPivot - hangOffsetDown;
+
+                    _hangPosition = new Vector3(
+                        _topPosition.x,
+                        targetY,
+                        _topPosition.z
+                    ) - (transform.forward * hangOffsetForward);
 
                     StartCoroutine(HangRoutine());
                 }
@@ -98,10 +122,9 @@ public class LedgeDetector : MonoBehaviour
 
         if (_animator != null)
         {
-            // Move/Speed parametrlərini sıfırla ki, yerimə animasiyası dayansın
             _animator.SetFloat("Speed", 0f);
             _animator.SetFloat("MotionSpeed", 0f);
-            _animator.SetBool("Grounded", false); // Havada olduğunu bildiririk
+            _animator.SetBool("Grounded", false);
             _animator.SetBool("FreeFall", false);
 
             int upperLayer = _animator.GetLayerIndex("UpperBody");
@@ -109,7 +132,6 @@ public class LedgeDetector : MonoBehaviour
 
             _animator.applyRootMotion = false;
 
-            // Hanging animasiyasını aktivləşdir
             _animator.SetBool("isHanging", true);
             _animator.Play("Hanging", 0, 0f);
         }
@@ -136,14 +158,18 @@ public class LedgeDetector : MonoBehaviour
 
         if (_animator != null)
         {
-            // YALNIZ parametrləri dəyişirik, Play() çağırmırıq!
             _animator.SetBool("isHanging", false);
             _animator.SetTrigger("Climb");
+            _animator.applyRootMotion = false; // Kodla idarə etdiyimiz üçün Root Motion bağlanır
         }
 
         Vector3 startPosition = transform.position;
-        Vector3 midPoint = new Vector3(startPosition.x, _topPosition.y, startPosition.z);
+
+        // Final position: Xarakterin tam çıxacağı yer (Tilin üstü + bir az irəli)
         Vector3 finalPosition = _topPosition + (transform.forward * 0.4f);
+
+        // MidPoint: Asıldığı Y dəyərindən birbaşa final hündürlüyə (səthə) olan Y qalxma nöqtəsi
+        Vector3 midPoint = new Vector3(startPosition.x, finalPosition.y, startPosition.z);
 
         float elapsedTime = 0f;
 
@@ -151,13 +177,15 @@ public class LedgeDetector : MonoBehaviour
         {
             float t = elapsedTime / climbDuration;
 
-            if (t < 0.5f)
+            if (t < 0.6f)
             {
-                transform.position = Vector3.Lerp(startPosition, midPoint, t / 0.5f);
+                // Vaxtın 60%-də bədəni tədricən divarın üst hündürlüyünə qaldırır
+                transform.position = Vector3.Lerp(startPosition, midPoint, t / 0.6f);
             }
             else
             {
-                transform.position = Vector3.Lerp(midPoint, finalPosition, (t - 0.5f) / 0.5f);
+                // Qalan 40%-də bədəni irəli — divarın üstünə keçirir
+                transform.position = Vector3.Lerp(midPoint, finalPosition, (t - 0.6f) / 0.4f);
             }
 
             elapsedTime += Time.deltaTime;
@@ -166,11 +194,10 @@ public class LedgeDetector : MonoBehaviour
 
         transform.position = finalPosition;
 
-        // FİZİKA VƏ ANIMATORU SIFIRLAYIRIQ
         if (_animator != null)
         {
             _animator.SetBool("isHanging", false);
-            _animator.ResetTrigger("Climb"); // Trigger-i sıfırlayırıq
+            _animator.ResetTrigger("Climb");
             _animator.SetBool("Grounded", true);
         }
 
@@ -178,5 +205,12 @@ public class LedgeDetector : MonoBehaviour
             _characterController.enabled = true;
 
         _isClimbing = false;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Transform point = shoulderPoint != null ? shoulderPoint : transform;
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(point.position, maxArmLength);
     }
 }
