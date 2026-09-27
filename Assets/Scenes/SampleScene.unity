@@ -1017,6 +1017,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Environment_Prefab
       objectReference: {fileID: 0}
+    - target: {fileID: 8345070699079395523, guid: 09aade0ecefd01e4b8f7661acf64f5c2,
+        type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1468,11 +1473,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   maxJumpReachHeight: 2.5
-  maxArmLength: 2
-  shoulderPoint: {fileID: 1996659578}
-  hangOffsetDown: 0
-  hangOffsetForward: 0.25
-  climbDuration: 1.5
+  handYOffsetFromPivot: 1.95
+  hangOffsetForward: 0.1
+  climbDuration: 3.3
   _animator: {fileID: 1805316026}
 --- !u!1 &1857695618
 GameObject:

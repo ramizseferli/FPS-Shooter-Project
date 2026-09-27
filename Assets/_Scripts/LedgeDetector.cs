@@ -5,24 +5,19 @@ public class LedgeDetector : MonoBehaviour
 {
     [Header("Detection Settings")]
     public float wallCheckDistance = 1.2f;
-    public float ledgeCheckHeight = 1.6f;
-    public float maxLedgeDepth = 1.5f;
+    public float ledgeCheckHeight = 1.9f;
+    public float maxLedgeDepth = 2.5f;
     public LayerMask climbableLayer;
 
     [Header("Reach & Height Safety Limits")]
-    [Tooltip("Personajın tullanıb tuta biləcəyi maksimum hündürlük (metrlə)")]
     public float maxJumpReachHeight = 2.5f;
-    [Tooltip("Çiyin/Əl oxundan tilə qədər maksimum çatışma məsafəsi")]
-    public float maxArmLength = 0.9f;
-    [Tooltip("Çiyin və ya əlin çıxış nöqtəsi (Boş qalsa Player transform istifadə edəcək)")]
-    public Transform shoulderPoint;
 
     [Header("Offset Settings")]
-    [Tooltip("Xarakter asılanda əllərinin divar kənarına dəyməsi üçün aşağı düşmə məsafəsi")]
-    public float hangOffsetDown = 0f;
-    [Tooltip("Xarakterin divardan irəli/geri məsafəsi")]
-    public float hangOffsetForward = 0.25f;
-    public float climbDuration = 1.0f;
+    [Tooltip("Əllərin divarın kənarına tam oturması üçün dikey offset")]
+    public float handYOffsetFromPivot = 1.95f;
+    [Tooltip("Asılarkən divarla bədən arasındakı məsafə")]
+    public float hangOffsetForward = 0.1f;
+    public float climbDuration = 1.8f;
 
     [Header("References")]
     public Animator _animator;
@@ -48,9 +43,6 @@ public class LedgeDetector : MonoBehaviour
         _characterController = GetComponent<CharacterController>();
         if (_animator == null)
             _animator = GetComponentInChildren<Animator>();
-
-        if (shoulderPoint == null)
-            shoulderPoint = transform;
     }
 
     private void Update()
@@ -89,17 +81,12 @@ public class LedgeDetector : MonoBehaviour
                 {
                     _topPosition = topHit.point;
 
-                    // --- SÜZGƏC 1: MAX HÜNDÜRLÜK YOXLAMASI ---
+                    // MAX HÜNDÜRLÜK SÜZGƏCİ
                     float heightDifference = _topPosition.y - transform.position.y;
                     if (heightDifference > maxJumpReachHeight) return;
 
-                    // --- SÜZGƏC 2: ƏLİN / QOLUN ÇATMA MƏSAFƏSİ YOXLAMASI ---
-                    float distanceToLedge = Vector3.Distance(shoulderPoint.position, _topPosition);
-                    if (distanceToLedge > maxArmLength) return;
-
-                    // --- DƏQİQ ASILMA HESABLAMASI ---
-                    float handYOffsetFromPivot = 1.95f;
-                    float targetY = _topPosition.y - handYOffsetFromPivot - hangOffsetDown;
+                    // DƏQİQ ASILMA HESABLAMASI
+                    float targetY = _topPosition.y - handYOffsetFromPivot;
 
                     _hangPosition = new Vector3(
                         _topPosition.x,
@@ -139,9 +126,9 @@ public class LedgeDetector : MonoBehaviour
         float elapsedTime = 0f;
         Vector3 startPos = transform.position;
 
-        while (elapsedTime < 0.25f)
+        while (elapsedTime < 0.2f)
         {
-            transform.position = Vector3.Lerp(startPos, _hangPosition, elapsedTime / 0.25f);
+            transform.position = Vector3.Lerp(startPos, _hangPosition, elapsedTime / 0.2f);
             elapsedTime += Time.deltaTime;
             yield return null;
         }
@@ -156,61 +143,47 @@ public class LedgeDetector : MonoBehaviour
         _isHanging = false;
         _isClimbing = true;
 
+        if (_characterController != null)
+            _characterController.enabled = false;
+
         if (_animator != null)
         {
             _animator.SetBool("isHanging", false);
             _animator.SetTrigger("Climb");
-            _animator.applyRootMotion = false; // Kodla idarə etdiyimiz üçün Root Motion bağlanır
+            _animator.applyRootMotion = false;
         }
 
-        Vector3 startPosition = transform.position;
+        // Animasiyanın ən sonundakı o xətalı reset kadrolarına çatmamaq üçün 
+        // gözləmə müddətini 0.3 saniyə tez bitiririk
+        float targetWaitTime = Mathf.Max(0.1f, climbDuration - 0.3f);
+        yield return new WaitForSeconds(targetWaitTime);
 
-        // Final position: Xarakterin tam çıxacağı yer (Tilin üstü + bir az irəli)
-        Vector3 finalPosition = _topPosition + (transform.forward * 0.4f);
-
-        // MidPoint: Asıldığı Y dəyərindən birbaşa final hündürlüyə (səthə) olan Y qalxma nöqtəsi
-        Vector3 midPoint = new Vector3(startPosition.x, finalPosition.y, startPosition.z);
-
-        float elapsedTime = 0f;
-
-        while (elapsedTime < climbDuration)
-        {
-            float t = elapsedTime / climbDuration;
-
-            if (t < 0.6f)
-            {
-                // Vaxtın 60%-də bədəni tədricən divarın üst hündürlüyünə qaldırır
-                transform.position = Vector3.Lerp(startPosition, midPoint, t / 0.6f);
-            }
-            else
-            {
-                // Qalan 40%-də bədəni irəli — divarın üstünə keçirir
-                transform.position = Vector3.Lerp(midPoint, finalPosition, (t - 0.6f) / 0.4f);
-            }
-
-            elapsedTime += Time.deltaTime;
-            yield return null;
-        }
-
+        // Xarakteri tam divarın üstünə oturduruq
+        Vector3 finalPosition = _topPosition + (transform.forward * 0.35f);
         transform.position = finalPosition;
 
         if (_animator != null)
         {
-            _animator.SetBool("isHanging", false);
             _animator.ResetTrigger("Climb");
             _animator.SetBool("Grounded", true);
+            _animator.SetBool("isHanging", false);
         }
 
         if (_characterController != null)
+        {
             _characterController.enabled = true;
+            _characterController.Move(Vector3.down * 0.05f);
+        }
 
         _isClimbing = false;
     }
 
     private void OnDrawGizmosSelected()
     {
-        Transform point = shoulderPoint != null ? shoulderPoint : transform;
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(point.position, maxArmLength);
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(_topPosition, 0.08f);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(_hangPosition, 0.08f);
     }
 }
