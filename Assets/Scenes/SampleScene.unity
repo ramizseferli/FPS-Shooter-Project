@@ -892,9 +892,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponController
   weaponData: {fileID: 11400000, guid: a6da0cd81f7f235409abfd5a1bbffa51, type: 2}
   currentAmmo: 30
-  animator: {fileID: 0}
+  animator: {fileID: 1805316026}
   weaponMesh: {fileID: 612378887}
-  isArmed: 0
+  isArmed: 1
   cameraTransform: {fileID: 330585546}
   ignoreLayers:
     serializedVersion: 2

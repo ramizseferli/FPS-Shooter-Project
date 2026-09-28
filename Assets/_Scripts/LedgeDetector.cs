@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 public class LedgeDetector : MonoBehaviour
@@ -27,6 +28,9 @@ public class LedgeDetector : MonoBehaviour
     private bool _isClimbing = false;
     private Vector3 _hangPosition;
     private Vector3 _topPosition;
+
+    public static event Action OnLedgeGrabbed;
+    public static event Action OnClimbFinished;
 
     private void Start()
     {
@@ -104,6 +108,9 @@ public class LedgeDetector : MonoBehaviour
     {
         _isClimbing = true;
 
+        // Silahı gizlətmək üçün eventi tetikləyirik
+        OnLedgeGrabbed?.Invoke();
+
         if (_characterController != null)
             _characterController.enabled = false;
 
@@ -153,8 +160,6 @@ public class LedgeDetector : MonoBehaviour
             _animator.applyRootMotion = false;
         }
 
-        // Animasiyanın ən sonundakı o xətalı reset kadrolarına çatmamaq üçün 
-        // gözləmə müddətini 0.3 saniyə tez bitiririk
         float targetWaitTime = Mathf.Max(0.1f, climbDuration - 0.3f);
         yield return new WaitForSeconds(targetWaitTime);
 
@@ -176,6 +181,9 @@ public class LedgeDetector : MonoBehaviour
         }
 
         _isClimbing = false;
+
+        // Dırmaşma bitdi - silahı yenidən ələ almaq üçün eventi tetikləyirik
+        OnClimbFinished?.Invoke();
     }
 
     private void OnDrawGizmosSelected()

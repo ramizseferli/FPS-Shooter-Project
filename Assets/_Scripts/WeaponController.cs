@@ -19,7 +19,6 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private float range = 100f;
     [SerializeField] private float damage = 20f;
 
-
     // Events
     public event Action OnFired;
     public event Action<int, int> OnAmmoChanged;
@@ -31,7 +30,8 @@ public class WeaponController : MonoBehaviour
     private float reloadTime;
     private bool isReloading = false;
     private FireMode fireMode;
-    // 1. UNITY LIFECYCLE (İlk işə düşənlər)
+
+    // 1. UNITY LIFECYCLE
     public void Awake()
     {
         InitializeWeaponData();
@@ -39,18 +39,17 @@ public class WeaponController : MonoBehaviour
 
     public void InitializeWeaponData()
     {
-        if(weaponData !=null)
+        if (weaponData != null)
         {
             maxAmmo = weaponData.maxAmmo;
             fireRate = weaponData.fireRate;
-            range=weaponData.range;
+            range = weaponData.range;
             damage = weaponData.damage;
             reloadTime = weaponData.reloadTime;
             fireMode = weaponData.fireMode;
 
             currentAmmo = maxAmmo;
         }
-
         else
         {
             Debug.LogError($"{gameObject.name} üzərində WeaponData təyin olunmayıb");
@@ -64,20 +63,23 @@ public class WeaponController : MonoBehaviour
             cameraTransform = Camera.main.transform;
         }
 
-        if (weaponMesh != null)
-        {
-            weaponMesh.SetActive(isArmed);
-        }
-
-        if (animator != null)
-        {
-            animator.SetBool("IsArmed", isArmed);
-        }
-
+        SetArmedState(isArmed);
         OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
     }
 
-    // 2. PUBLIC METHODS (Kənardan çağırılanlar)
+    private void OnEnable()
+    {
+        LedgeDetector.OnLedgeGrabbed += HandleLedgeGrabbed;
+        LedgeDetector.OnClimbFinished += HandleClimbFinished;
+    }
+
+    private void OnDisable()
+    {
+        LedgeDetector.OnLedgeGrabbed -= HandleLedgeGrabbed;
+        LedgeDetector.OnClimbFinished -= HandleClimbFinished;
+    }
+
+    // 2. PUBLIC METHODS
     public void TryShoot()
     {
         if (isArmed && Time.time >= nextTimeToFire && currentAmmo > 0 && !isReloading)
@@ -90,7 +92,6 @@ public class WeaponController : MonoBehaviour
             {
                 ExecuteSingleShot();
             }
-
         }
     }
 
@@ -101,7 +102,7 @@ public class WeaponController : MonoBehaviour
             StartCoroutine(ReloadCoroutine());
         }
     }
-    
+
     public void SetArmedState(bool armed)
     {
         isArmed = armed;
@@ -109,12 +110,35 @@ public class WeaponController : MonoBehaviour
         if (animator != null)
         {
             animator.SetBool("IsArmed", isArmed);
+
+            if (animator.layerCount > 1)
+            {
+                animator.SetLayerWeight(1, isArmed ? 1f : 0f);
+            }
         }
 
         if (weaponMesh != null)
         {
             weaponMesh.SetActive(isArmed);
         }
+    }
+
+    public void ToggleWeapon()
+    {
+        SetArmedState(!isArmed);
+    }
+
+    public FireMode GetFireMode() => fireMode;
+
+    // 3. PRIVATE METHODS / EVENT HANDLERS
+    private void HandleLedgeGrabbed()
+    {
+        SetArmedState(false);
+    }
+
+    private void HandleClimbFinished()
+    {
+        SetArmedState(true);
     }
 
     private void ExecuteSingleShot()
@@ -126,19 +150,21 @@ public class WeaponController : MonoBehaviour
         OnFired?.Invoke();
         OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
     }
+
     private IEnumerator BurstShootCorotine()
     {
         nextTimeToFire = Time.time + fireRate;
 
-        for (int i = 0; i<3; i++)
+        for (int i = 0; i < 3; i++)
         {
-            if (currentAmmo>0 && !isReloading)
+            if (currentAmmo > 0 && !isReloading)
             {
                 ExecuteSingleShot();
                 yield return new WaitForSeconds(0.08f);
             }
         }
     }
+
     private void ShootRaycast()
     {
         if (cameraTransform == null)
@@ -158,31 +184,14 @@ public class WeaponController : MonoBehaviour
             }
         }
     }
-    // 3. PRIVATE METHODS / COROUTINES (Daxili köməkçilər)
+
     private IEnumerator ReloadCoroutine()
     {
         isReloading = true;
-
         yield return new WaitForSeconds(reloadTime);
 
         currentAmmo = maxAmmo;
         OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
         isReloading = false;
     }
-    // 4. Weapon Shoot Animation arrangement
-    public void ToggleWeapon()
-    {
-        isArmed = !isArmed;
-
-        if (animator !=null)
-        {
-            animator.SetBool("IsArmed", isArmed);
-        }
-
-        if(weaponMesh != null)
-        {
-            weaponMesh.SetActive(isArmed);
-        }
-    }
-    public FireMode GetFireMode() => fireMode;
 }
