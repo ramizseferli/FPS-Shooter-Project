@@ -23,6 +23,7 @@ public class LedgeDetector : MonoBehaviour
     [Header("References")]
     public Animator _animator;
     private CharacterController _characterController;
+    private PlayerMovement _playerMovement; // PlayerMovement referansı əlavə olundu
 
     private bool _isHanging = false;
     private bool _isClimbing = false;
@@ -45,6 +46,8 @@ public class LedgeDetector : MonoBehaviour
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
+        _playerMovement = GetComponent<PlayerMovement>(); // Skripti tanıdırıq
+
         if (_animator == null)
             _animator = GetComponentInChildren<Animator>();
     }
@@ -108,7 +111,6 @@ public class LedgeDetector : MonoBehaviour
     {
         _isClimbing = true;
 
-        // Silahı gizlətmək üçün eventi tetikləyirik
         OnLedgeGrabbed?.Invoke();
 
         if (_characterController != null)
@@ -156,33 +158,46 @@ public class LedgeDetector : MonoBehaviour
         if (_animator != null)
         {
             _animator.SetBool("isHanging", false);
+            _animator.SetBool("isClimbing", true);
             _animator.SetTrigger("Climb");
             _animator.applyRootMotion = false;
         }
 
-        float targetWaitTime = Mathf.Max(0.1f, climbDuration - 0.3f);
-        yield return new WaitForSeconds(targetWaitTime);
+        // 1. Dırmaşma animasiyasının bitməsini gözləyirik
+        yield return new WaitForSeconds(climbDuration);
 
-        // Xarakteri tam divarın üstünə oturduruq
-        Vector3 finalPosition = _topPosition + (transform.forward * 0.35f);
+        // 2. Mövqeni dəqiq divarın tam ÜSTÜNƏ (0.1m yuxarı) oturduruq ki, kollider sıxışmasın
+        Vector3 finalPosition = _topPosition + (transform.forward * 0.4f) + (Vector3.up * 0.1f);
         transform.position = finalPosition;
 
         if (_animator != null)
         {
             _animator.ResetTrigger("Climb");
+            _animator.SetBool("isClimbing", false);
             _animator.SetBool("Grounded", true);
             _animator.SetBool("isHanging", false);
         }
 
+        // Fizika mühitinin pozisiyanı mənimsəməsi üçün 2 fiziki kadr gözləyirik
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+
+        // BURA BAX: Yığılmış qravitasiyanı (sürəti) controller yanmazdan əvvəl sıfırlayırıq!
+        if (_playerMovement != null)
+        {
+            _playerMovement.ResetVelocity();
+        }
+
         if (_characterController != null)
         {
+            // 3. Controller-i yandırırıq
             _characterController.enabled = true;
-            _characterController.Move(Vector3.down * 0.05f);
+
+            // 4. Bütün köhnə Y inersiyasını və sıçrayışı söndürmək üçün xarakteri yerə doğru sıxırıq
+            _characterController.Move(Vector3.down * 0.2f);
         }
 
         _isClimbing = false;
-
-        // Dırmaşma bitdi - silahı yenidən ələ almaq üçün eventi tetikləyirik
         OnClimbFinished?.Invoke();
     }
 

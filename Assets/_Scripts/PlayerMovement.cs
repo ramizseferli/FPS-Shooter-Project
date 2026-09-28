@@ -85,4 +85,10 @@ public class PlayerMovement : MonoBehaviour
     {
 
     }
+
+    // Yığılmış qravitasiyanı və hərəkəti sıfırlayan funksiya
+    public void ResetVelocity()
+    {
+        moveDirection = Vector3.zero;
+    }
 }
