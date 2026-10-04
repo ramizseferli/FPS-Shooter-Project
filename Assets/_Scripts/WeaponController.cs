@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 
+[ExecuteInEditMode] // Editor rejimində (Play olmadan) OnValidate və dəyişikliklərin işləməsi üçün
 public class WeaponController : MonoBehaviour
 {
     [Header("Weapon Data Connection")]
@@ -58,6 +59,9 @@ public class WeaponController : MonoBehaviour
 
     private void Start()
     {
+        // Play rejimindən kənarda (Editor Mode) Runtime yoxlamaları etməyə ehtiyac yoxdur
+        if (!Application.isPlaying) return;
+
         if (cameraTransform == null && Camera.main != null)
         {
             cameraTransform = Camera.main.transform;
@@ -69,14 +73,30 @@ public class WeaponController : MonoBehaviour
 
     private void OnEnable()
     {
+        if (!Application.isPlaying) return;
+
         LedgeDetector.OnLedgeGrabbed += HandleLedgeGrabbed;
         LedgeDetector.OnClimbFinished += HandleClimbFinished;
     }
 
     private void OnDisable()
     {
+        if (!Application.isPlaying) return;
+
         LedgeDetector.OnLedgeGrabbed -= HandleLedgeGrabbed;
         LedgeDetector.OnClimbFinished -= HandleClimbFinished;
+    }
+
+    // Inspector-da isArmed dəyişənini dəyişən an (Play-də və ya Edit-də fərq etməz) işə düşür
+    private void OnValidate()
+    {
+        UnityEditor.EditorApplication.delayCall += () =>
+        {
+            if (this != null)
+            {
+                UpdateVisualsEditorMode();
+            }
+        };
     }
 
     // 2. PUBLIC METHODS
@@ -106,8 +126,9 @@ public class WeaponController : MonoBehaviour
     public void SetArmedState(bool armed)
     {
         isArmed = armed;
+        UpdateVisualsEditorMode();
 
-        if (animator != null)
+        if (Application.isPlaying && animator != null)
         {
             animator.SetBool("IsArmed", isArmed);
 
@@ -115,11 +136,6 @@ public class WeaponController : MonoBehaviour
             {
                 animator.SetLayerWeight(1, isArmed ? 1f : 0f);
             }
-        }
-
-        if (weaponMesh != null)
-        {
-            weaponMesh.SetActive(isArmed);
         }
     }
 
@@ -131,6 +147,14 @@ public class WeaponController : MonoBehaviour
     public FireMode GetFireMode() => fireMode;
 
     // 3. PRIVATE METHODS / EVENT HANDLERS
+    private void UpdateVisualsEditorMode()
+    {
+        if (weaponMesh != null)
+        {
+            weaponMesh.SetActive(isArmed);
+        }
+    }
+
     private void HandleLedgeGrabbed()
     {
         SetArmedState(false);
