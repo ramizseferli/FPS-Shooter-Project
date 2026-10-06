@@ -2,27 +2,28 @@
 
 public class WorkbenchSlot : MonoBehaviour
 {
-    [Header("Visual References")]
-    [SerializeField] private GameObject weaponOnSlot;
+    // YENİ: Ən son hansı slotdan silah götürüldüyünü yadda saxlayır
+    private static WorkbenchSlot lastPickedSlot;
+
+    [Header("Visual Reference")]
+    [SerializeField] private GameObject weaponOnSlot; // Bu konkret slotdakı vizual silah
 
     private bool isPlayerInRange = false;
     private WeaponController playerWeaponController;
 
     private void OnTriggerEnter(Collider other)
     {
-        // 1. Dəyən obyektin özündə VƏ YA onun ana obyektdə (Parent) WeaponController varmı yoxlayırıq
         WeaponController controller = other.GetComponentInParent<WeaponController>();
-
         if (controller == null)
         {
-            controller = other.GetComponentInChildren<WeaponController>();
+            controller = other.GetComponentInChildren<WeaponController>(true);
         }
 
         if (controller != null)
         {
             playerWeaponController = controller;
             isPlayerInRange = true;
-            Debug.Log("[WORKBENCH] Oyunçu masanın zonasına girdi.");
+            Debug.Log($"[WORKBENCH] {gameObject.name} zonasında oyunçu var.");
         }
     }
 
@@ -31,14 +32,14 @@ public class WorkbenchSlot : MonoBehaviour
         WeaponController controller = other.GetComponentInParent<WeaponController>();
         if (controller == null)
         {
-            controller = other.GetComponentInChildren<WeaponController>();
+            controller = other.GetComponentInChildren<WeaponController>(true);
         }
 
         if (controller != null && controller == playerWeaponController)
         {
             isPlayerInRange = false;
             playerWeaponController = null;
-            Debug.Log("[WORKBENCH] Oyunçu masanın zonasından çıxdı.");
+            Debug.Log($"[WORKBENCH] {gameObject.name} zonasından oyunçu çıxdı.");
         }
     }
 
@@ -46,23 +47,40 @@ public class WorkbenchSlot : MonoBehaviour
     {
         if (isPlayerInRange && Input.GetKeyDown(KeyCode.E))
         {
-            InteractWithTable();
+            InteractWithSlot();
         }
     }
 
-    private void InteractWithTable()
+    private void InteractWithSlot()
     {
         if (playerWeaponController == null) return;
 
-        Debug.Log("[WORKBENCH] E düyməsi basıldı. Silah aktivləşdirilir.");
+        // Slotda silah yoxdursa və ya artıq götürülübsə qarşısını alırıq
+        if (weaponOnSlot != null && !weaponOnSlot.activeSelf) return;
 
-        // Oyunçuya silahı veririk
+        // --- YENİ: SWAP (Yerdəyişmə) MƏNTİQİ ---
+        // Əgər əvvəl başqa slotdan silah götürmüşdüksə, həmin silahı masaya qaytarırıq
+        if (lastPickedSlot != null && lastPickedSlot != this)
+        {
+            if (lastPickedSlot.weaponOnSlot != null)
+            {
+                lastPickedSlot.weaponOnSlot.SetActive(true);
+            }
+        }
+        // ----------------------------------------
+
+        Debug.Log($"[WORKBENCH] {gameObject.name} üçün E basıldı. Silah verilir.");
+
+        // Oyunçunun silahını aktivləşdiririk
         playerWeaponController.SetArmedState(true);
 
-        // Masadakı silahı gizlədirik
+        // Yalnız BU slotdakı vizual silahı söndürürük
         if (weaponOnSlot != null)
         {
             weaponOnSlot.SetActive(false);
         }
+
+        // YENİ: Bu slotu son istifadə olunan kimi yadda saxlayırıq
+        lastPickedSlot = this;
     }
 }

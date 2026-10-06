@@ -1,5 +1,4 @@
-using UnityEngine;
-
+﻿using UnityEngine;
 
 public enum FireMode
 {
@@ -7,8 +6,8 @@ public enum FireMode
     FullyAuto,
     Burst
 }
-[CreateAssetMenu(fileName = "NewWeaponData", menuName = "Weapon System/Weapon Data")]
 
+[CreateAssetMenu(fileName = "NewWeaponData", menuName = "Weapon System/Weapon Data")]
 public class WeaponData : ScriptableObject
 {
     [Header("Weapon Identity")]
@@ -29,5 +28,10 @@ public class WeaponData : ScriptableObject
     public GameObject bulletHolePrefab;
     public AudioClip shootSound;
     public AudioClip reloadSound;
-    
+
+    // --- YENİ ƏLAVƏ EDİLƏNLƏR (ANIMATION) ---
+    [Header("Animations")]
+    public AnimatorOverrideController weaponAnimatorOverride; // 1-ci Üsul üçün (Ən rahatı)
+    // VƏ YA
+    public int weaponAnimationID; // 2-ci Üsul üçün (Integer ilə)
 }
